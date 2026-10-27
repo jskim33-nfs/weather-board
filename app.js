@@ -67,7 +67,37 @@ function showToday() {
     d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
 }
 
+// 03 단원 : 지역별 오늘 날씨 받기 (한 지역이 실패해도 나머지는 표시)
+async function loadWeather() {
+  const box = document.getElementById('weatherBox');
+  const test = new URLSearchParams(location.search).get('test');
+  box.textContent = '날씨 불러오는 중…';
+  const regions = Object.keys(REGIONS);
+  const results = await Promise.allSettled(regions.map(async (r) => {
+    const res = await fetch(weatherUrl(r));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const w = parseWeather(await res.json());
+    if (!w) throw new Error('응답 형식 오류');
+    return w;
+  }));
+  let okCount = 0;
+  results.forEach((x, i) => {
+    if (x.status === 'fulfilled') {
+      weatherByRegion[regions[i]] = applyTest(x.value, test);
+      okCount++;
+    }
+  });
+  if (okCount === 0) {
+    box.textContent = '날씨를 불러오지 못했습니다. 인터넷 연결을 확인하세요.';
+  } else {
+    box.textContent = '오늘 날씨 (Open-Meteo) : ' + okCount + '/' + regions.length + '개 지역'
+      + (test === 'wind' ? ' · 시험 모드 : 풍속 12 m/s' : '');
+  }
+  renderTasks();
+}
+
 document.getElementById('taskForm').addEventListener('submit', addTask);
 showToday();
 loadTasks();
 renderTasks();
+loadWeather();
