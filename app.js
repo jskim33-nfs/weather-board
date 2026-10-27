@@ -80,11 +80,47 @@ async function addTask(e) {
 }
 
 // 오늘 날짜 (현지 시간 기준 YYYY-MM-DD)
-function showToday() {
+function todayText() {
   const d = new Date();
   const pad = (n) => String(n).padStart(2, '0');
-  document.getElementById('todayDate').textContent =
-    d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
+function showToday() {
+  document.getElementById('todayDate').textContent = todayText();
+}
+
+// 04 단원 : 오늘 판단을 md 파일로 저장
+function mdCell(v) {
+  return String(v).replace(/\|/g, '\\|').replace(/[\r\n]+/g, ' ');
+}
+
+// 날씨 상자 문구(지역 수 · 실패 · 시험 모드)를 그대로 한 줄로 적음
+function buildMarkdown() {
+  const lines = [
+    '# 현장 일정 날씨판 – ' + todayText(),
+    '',
+    '- ' + document.getElementById('weatherBox').textContent,
+    '- 기준 : 교육용 가상 기준 (R-01~R-05)',
+    '',
+    '| 일정 | 지역 | 구분 | 담당 | 날씨 | 판단 |',
+    '|---|---|---|---|---|---|',
+  ];
+  for (const t of tasks) {
+    const w = weatherByRegion[t.region];
+    const cells = [t.title, t.region, t.kind, t.owner, weatherText(w), judge(t.kind, w).text];
+    lines.push('| ' + cells.map(mdCell).join(' | ') + ' |');
+  }
+  return lines.join('\n') + '\n';
+}
+
+function saveMarkdown() {
+  const blob = new Blob([buildMarkdown()], { type: 'text/markdown;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'wx-' + todayText() + '.md';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
 // 03 단원 : 지역별 오늘 날씨 받기 (한 지역이 실패해도 나머지는 표시)
@@ -117,6 +153,7 @@ async function loadWeather() {
 }
 
 document.getElementById('taskForm').addEventListener('submit', addTask);
+document.getElementById('saveMdBtn').addEventListener('click', saveMarkdown);
 showToday();
 loadTasks().then(renderTasks);
 loadWeather();
