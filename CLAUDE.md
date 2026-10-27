@@ -6,14 +6,16 @@
 
 ## 기술 스택 (변경 금지)
 - HTML + CSS + 순수 JavaScript만 사용한다. (React 등 프레임워크, 빌드 도구 사용 금지)
-- index.html 을 더블클릭해서 열 수 있어야 한다. 단, data/ JSON은 배포 주소나 로컬 서버에서만 읽힌다.
+- index.html 을 더블클릭해서 열 수 있어야 한다. 단, Supabase 연결 정보(config.js)가 있어야 일정이 보인다.
+- 외부 스크립트는 supabase-js(버전 고정) 하나만 쓴다.
 
 ## 폴더 구조
 - index.html : 화면 구조
 - style.css  : 디자인
 - logic.js   : 판단 규칙만 (화면을 다루는 코드 금지)
 - app.js     : 화면 동작 (목록 그리기, 일정 추가)
-- data/tasks.json : 일정 데이터 (가상)
+- config.js  : Supabase 주소 · 공개용 키 두 줄만
+- setup.sql  : wx_tasks 표 만들기 (SQL Editor 에서 직접 실행)
 - PRD.md · CLAUDE.md · README.md : 문서
 
 ## 작업 방식
@@ -23,6 +25,7 @@
 
 ## 보안 · 데이터 규칙
 - 가상 데이터만 사용한다. 실제 이름 · 연락처 · 기관 내부 자료를 넣지 않는다.
-- 데이터는 data/ 폴더 JSON에 둔다.
+- 일정 데이터는 Supabase 표 wx_tasks 에 둔다. 표 구조 · 값 규칙은 setup.sql 에 둔다.
+- config.js 에는 주소와 공개용(anon/publishable) 키만 둔다. service_role 키는 쓰지 않는다.
 - 사용자가 입력한 글자는 textContent 로 표시한다.
 - 비밀 키는 코드 · 채팅 · GitHub 에 넣지 않는다.

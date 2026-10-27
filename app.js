@@ -1,27 +1,33 @@
 // app.js – 화면 동작 (목록 그리기, 일정 추가)
 
-// 04 단원 : 일정 목록은 data/tasks.json 에서 읽음 (가상 데이터)
-let baseTasks = [];
+// 04 단원 : 일정 목록은 Supabase 표 wx_tasks 에서 읽고 저장 (가상 데이터)
 let tasks = [];
 let weatherByRegion = {};   // 03 단원에서 지역별 날씨를 넣음
 
-// JSON 일정을 먼저 읽음 (더블클릭으로 열면 브라우저가 막음)
-async function loadBaseTasks() {
-  try {
-    const res = await fetch('data/tasks.json');
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    baseTasks = await res.json();
-  } catch (err) {
-    baseTasks = [];
-    document.getElementById('msgBox').textContent =
-      '일정 파일(data/tasks.json)을 읽지 못했습니다. 배포 주소로 열어 주세요.';
-  }
+// 연결 정보(config.js)가 비었거나 supabase-js를 못 불러오면 null
+const db = (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY)
+  ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  : null;
+
+function showMsg(text) {
+  document.getElementById('msgBox').textContent = text;
 }
 
-// JSON 일정 뒤에 화면에서 추가한 일정(브라우저 저장)을 붙임
-function loadTasks() {
-  const saved = JSON.parse(localStorage.getItem('wx_added') || '[]');
-  tasks = baseTasks.concat(saved);
+// wx_tasks 를 저장 순서대로 읽음
+async function loadTasks() {
+  if (!db) {
+    showMsg('Supabase 연결 정보가 없습니다. config.js 에 주소와 공개용 키를 넣어 주세요.');
+    return;
+  }
+  const { data, error } = await db
+    .from('wx_tasks')
+    .select('title, region, kind, owner')
+    .order('created_at', { ascending: true });
+  if (error) {
+    showMsg('일정을 읽지 못했습니다 : ' + error.message);
+    return;
+  }
+  tasks = data;
 }
 
 function weatherText(w) {
@@ -48,8 +54,9 @@ function renderTasks() {
   }
 }
 
-function addTask(e) {
+async function addTask(e) {
   e.preventDefault();
+  const form = e.target;
   const t = {
     title: document.getElementById('titleInput').value.trim(),
     region: document.getElementById('regionInput').value,
@@ -57,11 +64,18 @@ function addTask(e) {
     owner: document.getElementById('ownerInput').value.trim(),
   };
   if (!t.title || !t.owner) return;
-  const saved = JSON.parse(localStorage.getItem('wx_added') || '[]');
-  saved.push(t);
-  localStorage.setItem('wx_added', JSON.stringify(saved));
-  e.target.reset();
-  loadTasks();
+  if (!db) {
+    showMsg('Supabase 연결 정보가 없어 저장할 수 없습니다.');
+    return;
+  }
+  const { error } = await db.from('wx_tasks').insert(t);
+  if (error) {
+    showMsg('저장하지 못했습니다 : ' + error.message);
+    return;
+  }
+  showMsg('');
+  form.reset();
+  await loadTasks();
   renderTasks();
 }
 
@@ -104,8 +118,5 @@ async function loadWeather() {
 
 document.getElementById('taskForm').addEventListener('submit', addTask);
 showToday();
-loadBaseTasks().then(() => {
-  loadTasks();
-  renderTasks();
-});
+loadTasks().then(renderTasks);
 loadWeather();
