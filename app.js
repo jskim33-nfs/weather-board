@@ -59,6 +59,15 @@ function addTask(e) {
   renderTasks();
 }
 
+// 오늘 날짜 (현지 시간 기준 YYYY-MM-DD)
+function showToday() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  document.getElementById('todayDate').textContent =
+    d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
 document.getElementById('taskForm').addEventListener('submit', addTask);
+showToday();
 loadTasks();
 renderTasks();
